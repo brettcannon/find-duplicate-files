@@ -6,7 +6,7 @@ import "fmt"
 import "os"
 
 
-// Validate the passed-in arguments as directories.
+// Validate the passed-in arguments are directories.
 func validateArgs(args []string) error {
     if len(args) < 1 {
         return errors.New("expected 1 or more arguments")

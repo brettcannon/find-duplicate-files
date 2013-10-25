@@ -3,6 +3,21 @@ package main
 import "path/filepath"
 import "testing"
 
+
+var testdataTop = "testdata"
+var testdata1 = filepath.Join(testdataTop, "dir1")
+var testdata2 = filepath.Join(testdataTop, "dir2")
+
+
+func sliceToSet(stuff []string) map[string]bool {
+    set := make(map[string]bool)
+    for _, thing := range stuff {
+        set[thing] = true
+    }
+    return set
+}
+
+
 // CLI
 // Error to have no arguments.
 func TestCliRequiresOneOrMoreDirectories(t *testing.T) {
@@ -22,7 +37,7 @@ func TestCliArgsMustExist(t *testing.T) {
 
 // Error to specify a file.
 func TestCliArgsMustBeDirectories(t *testing.T) {
-    file := []string{filepath.Join("testdata", "dir1", "intra-same")}
+    file := []string{filepath.Join(testdata1, "intra-same")}
     if validateArgs(file) == nil {
         t.Error("files are not valid arguments")
     }
@@ -30,8 +45,58 @@ func TestCliArgsMustBeDirectories(t *testing.T) {
 
 // Succeed if all arguments are directories.
 func TestCliArgsDirectoriesOK(t *testing.T) {
-    dir := []string{filepath.Join("testdata", "dir1"), filepath.Join("testdata", "dir2")}
+    dir := []string{testdataTop, testdata1}
     if validateArgs(dir) != nil {
         t.Error("directories are acceptable")
+    }
+}
+
+// Directory traversal
+// Directory with only files.
+func TestFindFiles(t *testing.T) {
+    dir := []string{testdata2}
+    files, err := findFiles(dir)
+    if err != nil {
+        t.Fatal(err)
+    }
+    fileSet := sliceToSet(files)
+    if len(fileSet) != 2 {
+        t.Fatalf("found %v files instead of 2", len(fileSet))
+    }
+    file1 := filepath.Join(testdata2, "inter-diff")
+    file2 := filepath.Join(testdata2, "inter-same")
+    for _, file := range []string{file1, file2} {
+        if !fileSet[file] {
+            t.Errorf("%v not found in %v", file1, fileSet)
+        }
+    }
+}
+
+// Directory containing subdirectories.
+func TestFindRecursively(t *testing.T) {
+    dir := []string{testdataTop}
+    files, err := findFiles(dir)
+    if err != nil {
+        t.Fatal(err)
+    }
+    fileSet := sliceToSet(files)
+    if len(fileSet) != 8 {
+        t.Fatalf("found %v files instead of 8", len(fileSet))
+    }
+    if !fileSet[filepath.Join(testdata1, "intra-diff1")] {
+        t.Error("didn't find the intra-diff1 file")
+    }
+}
+
+// Multiple directories.
+func TestFindInMultipleDirectories(t *testing.T) {
+    dirs := []string{testdata1, testdata2}
+    files, err := findFiles(dirs)
+    if err != nil {
+        t.Fatal(err)
+    }
+    fileSet := sliceToSet(files)
+    if len(fileSet) != 8 {
+        t.Fatalf("found %v files instead of 8", len(fileSet))
     }
 }

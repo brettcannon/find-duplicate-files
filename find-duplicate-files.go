@@ -1,21 +1,31 @@
 package main
 
+import "errors"
 import "flag"
 import "fmt"
 import "os"
 
-// If the argument is not nil, print to stderr and exit(1).
-func checkForFatalError(err error) {
-    if err != nil {
-        fmt.Fprintln(os.Stderr, err)
-        os.Exit(1)
-    }
-}
 
-// Print argument to stderr and exit(1).
-func errorAndExit(err string) {
-    fmt.Fprintln(os.Stderr, err)
-    os.Exit(1)
+// Validate the passed-in arguments as directories.
+func validateArgs(args []string) error {
+    if len(args) < 1 {
+        return errors.New("expected 1 or more arguments")
+    }
+    for _, directory := range args {
+        dir, err := os.Open(directory)
+        if err != nil {
+            return err
+        }
+        defer dir.Close()
+        info, err := dir.Stat()
+        if err != nil {
+            return err
+        } else if !info.IsDir() {
+            return errors.New(fmt.Sprintf("%v is not a directory", directory))
+        }
+    }
+
+    return nil
 }
 
 // find-duplicate-files takes 1 or more directories on the command-line,
@@ -23,18 +33,10 @@ func errorAndExit(err string) {
 // each other.
 func main() {
     flag.Parse()
-    if flag.NArg() < 1 {
-        // flag.out() should be made public
-        errorAndExit("expected 1 or more arguments")
-    }
-
-    for _, directory := range flag.Args() {
-        dir, err := os.Open(directory); checkForFatalError(err)
-        info, err := dir.Stat(); checkForFatalError(err)
-        if !info.IsDir() {
-            errorAndExit(fmt.Sprintf("%v is not a directory", directory))
-        }
-
-        // XXX traverse directory
+    directories := flag.Args()
+    err := validateArgs(directories); if err != nil {
+        // Be more correct if flags.out() were publicly available.
+        fmt.Fprintln(os.Stderr, err)
+        os.Exit(1)
     }
 }

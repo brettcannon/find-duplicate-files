@@ -35,8 +35,14 @@ func main() {
     flag.Parse()
     directories := flag.Args()
     err := validateArgs(directories); if err != nil {
-        // Be more correct if flags.out() were publicly available.
+        // Would be more correct if flags.out() were publicly available instead of hard coding os.Stderr.
         fmt.Fprintln(os.Stderr, err)
         os.Exit(1)
     }
+
+    // XXX traverse looking for files and folders to enter
+    // XXX hash a file
+    // XXX 4096 seems to be a common buffer size for file systems and HDDs
+    // XXX collect duplicates
+    // XXX print duplicates, sorted
 }

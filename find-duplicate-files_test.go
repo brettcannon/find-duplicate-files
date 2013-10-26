@@ -108,7 +108,7 @@ func TestHashingUnknown(t *testing.T) {
 }
 
 // Verify hashing works.
-func TestHasing(t *testing.T) {
+func TestHashing(t *testing.T) {
 	intraSame1, err := hashFile(filepath.Join(testdata1, "intra-same1"))
 	if err != nil {
 		t.Fatal(err)

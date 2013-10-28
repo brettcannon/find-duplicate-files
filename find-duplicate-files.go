@@ -8,6 +8,8 @@ import "io"
 import "os"
 import "path/filepath"
 
+type HashToFiles map[uint64][]string
+
 // Hash the file at 'path'.
 func hashFile(path string) (uint64, error) {
 	file, err := os.Open(path)
@@ -60,6 +62,24 @@ func findFiles(directories []string) ([]string, error) {
 	return files, nil
 }
 
+func findDuplicates(files []string) (HashToFiles, error) {
+	hashToFiles := make(HashToFiles)
+	for _, path := range files {
+		hash, err := hashFile(path)
+		if err != nil {
+			return nil, err
+		}
+
+		files, ok := hashToFiles[hash]
+		if !ok {
+			files = make([]string, 0, 2)
+		}
+		hashToFiles[hash] = append(files, path)
+	}
+
+	return hashToFiles, nil
+}
+
 // Validate the passed-in arguments are directories.
 func validateArgs(args []string) error {
 	if len(args) < 1 {
@@ -98,12 +118,19 @@ func main() {
 	if err != nil {
 		errorExit(err)
 	}
-	_, err = findFiles(directories)
+	files, err := findFiles(directories)
 	if err != nil {
 		errorExit(err)
 	}
-	// XXX hash files
-	// XXX 4096 seems to be a common buffer size for file systems and HDDs
-	// XXX collect duplicates
-	// XXX print duplicates, sorted
+
+	duplicates, err := findDuplicates(files)
+	if err != nil {
+		errorExit(err)
+	}
+
+	for _, duplicate := range duplicates {
+		if len(duplicate) > 1 {
+			fmt.Println(duplicate)
+		}
+	}
 }

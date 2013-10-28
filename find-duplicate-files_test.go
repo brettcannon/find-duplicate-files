@@ -136,34 +136,34 @@ func TestHashing(t *testing.T) {
 
 // Duplication detection.
 func TestDuplicationDetectingDuplicates(t *testing.T) {
-    files := []string{filepath.Join(testdata1, "intra-same1"), filepath.Join(testdata1, "intra-same2")}
-    dupes, err := findDuplicates(files)
-    if err != nil {
-        t.Fatal(err)
-    }
+	files := []string{filepath.Join(testdata1, "intra-same1"), filepath.Join(testdata1, "intra-same2")}
+	dupes, err := findDuplicates(files)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-    if len(dupes) != 1 {
-        t.Fatalf("expected 1 set of dupes, not %v", len(dupes))
-    }
+	if len(dupes) != 1 {
+		t.Fatalf("expected 1 set of dupes, not %v", len(dupes))
+	}
 
-    for _, given := range dupes {
-        givenSet := sliceToSet(given)
-        for _, path := range files {
-            if !givenSet[path] {
-                t.Fatalf("%v not in %v", path, given)
-            }
-        }
-    }
+	for _, given := range dupes {
+		givenSet := sliceToSet(given)
+		for _, path := range files {
+			if !givenSet[path] {
+				t.Fatalf("%v not in %v", path, given)
+			}
+		}
+	}
 }
 
 func TestDuplicationNoDupes(t *testing.T) {
-    files := []string{filepath.Join(testdata1, "intra-diff1"), filepath.Join(testdata1, "intra-diff2")}
-    dupes, err := findDuplicates(files)
-    if err != nil {
-        t.Fatal(err)
-    }
+	files := []string{filepath.Join(testdata1, "intra-diff1"), filepath.Join(testdata1, "intra-diff2")}
+	dupes, err := findDuplicates(files)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-    if len(dupes) != 2 {
-        t.Errorf("%v != 2", len(dupes))
-    }
+	if len(dupes) != 2 {
+		t.Errorf("%v != 2", len(dupes))
+	}
 }

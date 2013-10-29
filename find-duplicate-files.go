@@ -7,8 +7,16 @@ import "hash/fnv"
 import "io"
 import "os"
 import "path/filepath"
+import "runtime"
+import "sync"
 
 type HashToFiles map[uint64][]string
+
+type MaybeHash struct {
+	path string
+	hash uint64
+	err  error
+}
 
 // Hash the file at 'path'.
 func hashFile(path string) (uint64, error) {
@@ -32,6 +40,19 @@ func hashFile(path string) (uint64, error) {
 	}
 
 	return hash.Sum64(), nil
+}
+
+func hashFileAsync(request chan string, response chan MaybeHash, doneProcessing *sync.WaitGroup) {
+	for {
+		path := <-request
+		hash, err := hashFile(path)
+		if err != nil {
+			response <- MaybeHash{err: err}
+		} else {
+			response <- MaybeHash{path: path, hash: hash, err: nil}
+		}
+		doneProcessing.Done()
+	}
 }
 
 // Find all the files contained within 'directories'.
@@ -80,6 +101,42 @@ func findDuplicates(files []string) (HashToFiles, error) {
 	return hashToFiles, nil
 }
 
+func findDuplicatesConcurrently(filePaths []string) (HashToFiles, error) {
+	var doneProcessing sync.WaitGroup
+	request := make(chan string, len(filePaths))
+	response := make(chan MaybeHash, len(filePaths))
+	maxFds := runtime.NumCPU()
+
+	for _, path := range filePaths {
+		request <- path
+	}
+	doneProcessing.Add(len(filePaths))
+	for i := 0; i < maxFds; i++ {
+		go hashFileAsync(request, response, &doneProcessing)
+	}
+	doneProcessing.Wait()
+
+	hashToFiles := make(HashToFiles)
+	for {
+		select {
+		case hashResult := <-response:
+			if hashResult.err != nil {
+				return nil, hashResult.err
+			} else {
+				files, ok := hashToFiles[hashResult.hash]
+				if !ok {
+					files = make([]string, 0, 2)
+				}
+				hashToFiles[hashResult.hash] = append(files, hashResult.path)
+			}
+		default:
+			return hashToFiles, nil
+		}
+	}
+
+	return hashToFiles, nil
+}
+
 // Validate the passed-in arguments are directories.
 func validateArgs(args []string) error {
 	if len(args) < 1 {
@@ -123,7 +180,8 @@ func main() {
 		errorExit(err)
 	}
 
-	duplicates, err := findDuplicates(files)
+	//duplicates, err := findDuplicates(files)
+	duplicates, err := findDuplicatesConcurrently(files)
 	if err != nil {
 		errorExit(err)
 	}

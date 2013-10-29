@@ -135,9 +135,9 @@ func TestHashing(t *testing.T) {
 }
 
 // Duplication detection.
-func TestDuplicationDetectingDuplicates(t *testing.T) {
+func baseTestDuplicationDetectingDuplicates(findDupes func([]string) (HashToFiles, error), t *testing.T) {
 	files := []string{filepath.Join(testdata1, "intra-same1"), filepath.Join(testdata1, "intra-same2")}
-	dupes, err := findDuplicates(files)
+	dupes, err := findDupes(files)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -156,9 +156,13 @@ func TestDuplicationDetectingDuplicates(t *testing.T) {
 	}
 }
 
-func TestDuplicationNoDupes(t *testing.T) {
+func TestDuplicationDetectingDuplicatesSync(t *testing.T) {
+	baseTestDuplicationDetectingDuplicates(findDuplicates, t)
+}
+
+func baseTestDuplicationNoDupes(findDupes func([]string) (HashToFiles, error), t *testing.T) {
 	files := []string{filepath.Join(testdata1, "intra-diff1"), filepath.Join(testdata1, "intra-diff2")}
-	dupes, err := findDuplicates(files)
+	dupes, err := findDupes(files)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -166,4 +170,17 @@ func TestDuplicationNoDupes(t *testing.T) {
 	if len(dupes) != 2 {
 		t.Errorf("%v != 2", len(dupes))
 	}
+}
+
+func TestDuplicationNoDupes(t *testing.T) {
+	baseTestDuplicationNoDupes(findDuplicates, t)
+}
+
+// Concurrency
+func TestDuplicationDetectingDuplicatesSyncAsync(t *testing.T) {
+	baseTestDuplicationDetectingDuplicates(findDuplicatesConcurrently, t)
+}
+
+func TestDuplicationNoDupesAsync(t *testing.T) {
+	baseTestDuplicationNoDupes(findDuplicatesConcurrently, t)
 }

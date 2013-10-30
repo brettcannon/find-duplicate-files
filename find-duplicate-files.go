@@ -65,6 +65,8 @@ func findFiles(directories []string) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
+	    // While guarantees closure, is not immediate and so need explicit call
+	    // later on.
 		defer dirFile.Close()
 		contents, err := dirFile.Readdir(0)
 		if err != nil {
@@ -78,6 +80,7 @@ func findFiles(directories []string) ([]string, error) {
 				files = append(files, path)
 			}
 		}
+		dirFile.Close()
 	}
 
 	return files, nil

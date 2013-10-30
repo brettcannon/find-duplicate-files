@@ -137,22 +137,29 @@ func findDuplicatesConcurrently(filePaths []string) (HashToFiles, error) {
 	return hashToFiles, nil
 }
 
+func ValidateArgIsDir(arg string) error {
+	dir, err := os.Open(arg)
+	if err != nil {
+		return err
+	}
+	defer dir.Close()
+	info, err := dir.Stat()
+	if err != nil {
+		return err
+	} else if !info.IsDir() {
+		return errors.New(fmt.Sprintf("%v is not a directory", arg))
+	}
+	return nil
+}
+
 // Validate the passed-in arguments are directories.
 func validateArgs(args []string) error {
 	if len(args) < 1 {
 		return errors.New("expected 1 or more arguments")
 	}
 	for _, directory := range args {
-		dir, err := os.Open(directory)
-		if err != nil {
+		err := ValidateArgIsDir(directory); if err != nil {
 			return err
-		}
-		defer dir.Close()
-		info, err := dir.Stat()
-		if err != nil {
-			return err
-		} else if !info.IsDir() {
-			return errors.New(fmt.Sprintf("%v is not a directory", directory))
 		}
 	}
 

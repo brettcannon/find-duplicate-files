@@ -65,8 +65,8 @@ func findFiles(directories []string) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-	    // While guarantees closure, is not immediate and so need explicit call
-	    // later on.
+		// While guarantees closure, is not immediate and so need explicit call
+		// later on.
 		defer dirFile.Close()
 		contents, err := dirFile.Readdir(0)
 		if err != nil {
@@ -161,7 +161,8 @@ func validateArgs(args []string) error {
 		return errors.New("expected 1 or more arguments")
 	}
 	for _, directory := range args {
-		err := ValidateArgIsDir(directory); if err != nil {
+		err := ValidateArgIsDir(directory)
+		if err != nil {
 			return err
 		}
 	}

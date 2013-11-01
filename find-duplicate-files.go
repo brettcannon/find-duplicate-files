@@ -55,32 +55,44 @@ func hashFileAsync(request chan string, response chan MaybeHash, doneProcessing 
 	}
 }
 
+func sortDirContents(dir string) ([]string, []string, error) {
+	dirFile, err := os.Open(dir)
+	if err != nil {
+		return nil, nil, err
+	}
+	// While guarantees closure, is not immediate and so need explicit call
+	// later on.
+	defer dirFile.Close()
+
+	contents, err := dirFile.Readdir(0)
+	if err != nil {
+		return nil, nil, err
+	}
+	dirs := make([]string, 0, len(contents))
+	files := make([]string, 0, len(contents))
+	for _, content := range contents {
+		path := filepath.Join(dir, content.Name())
+		if content.IsDir() {
+			dirs = append(dirs, path)
+		} else {
+			files = append(files, path)
+		}
+	}
+	return dirs, files, nil
+}
+
 // Find all the files contained within 'directories'.
-func findFiles(directories []string) ([]string, error) {
+func findFiles(dirs []string) ([]string, error) {
 	files := make([]string, 0, 100)
 	// Can't use ranged 'for' as the length of directories changes during iteration.
-	for x := 0; x < len(directories); x++ {
-		directory := directories[x]
-		dirFile, err := os.Open(directory)
+	for x := 0; x < len(dirs); x++ {
+		directory := dirs[x]
+		dirsInDir, filesInDir, err := sortDirContents(directory)
 		if err != nil {
 			return nil, err
 		}
-		// While guarantees closure, is not immediate and so need explicit call
-		// later on.
-		defer dirFile.Close()
-		contents, err := dirFile.Readdir(0)
-		if err != nil {
-			return nil, err
-		}
-		for _, content := range contents {
-			path := filepath.Join(directory, content.Name())
-			if content.IsDir() {
-				directories = append(directories, path)
-			} else {
-				files = append(files, path)
-			}
-		}
-		dirFile.Close()
+		dirs = append(dirs, dirsInDir...)
+		files = append(files, filesInDir...)
 	}
 
 	return files, nil

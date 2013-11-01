@@ -132,23 +132,18 @@ func findDuplicatesConcurrently(filePaths []string) (HashToFiles, error) {
 		}()
 	}
 	doneProcessing.Wait()
+	close(response)
 
 	hashToFiles := make(HashToFiles)
-	for {
-		select {
-		case hashResult := <-response:
-			if hashResult.err != nil {
-				return nil, hashResult.err
-			} else {
-				files, ok := hashToFiles[hashResult.hash]
-				if !ok {
-					files = make([]string, 0, 2)
-				}
-				hashToFiles[hashResult.hash] = append(files, hashResult.path)
-			}
-		default:
-			return hashToFiles, nil
+	for hashResult := range response {
+		if hashResult.err != nil {
+			return nil, hashResult.err
 		}
+		files, ok := hashToFiles[hashResult.hash]
+		if !ok {
+			files = make([]string, 0, 2)
+		}
+		hashToFiles[hashResult.hash] = append(files, hashResult.path)
 	}
 
 	return hashToFiles, nil

@@ -43,15 +43,13 @@ func hashFile(path string) (uint64, error) {
 }
 
 func hashFileAsync(request chan string, response chan MaybeHash, doneProcessing *sync.WaitGroup) {
-	for {
-		path := <-request
-		hash, err := hashFile(path)
-		if err != nil {
-			response <- MaybeHash{err: err}
-		} else {
-			response <- MaybeHash{path: path, hash: hash, err: nil}
-		}
-		doneProcessing.Done()
+	defer doneProcessing.Done()
+	path := <-request
+	hash, err := hashFile(path)
+	if err != nil {
+		response <- MaybeHash{err: err}
+	} else {
+		response <- MaybeHash{path: path, hash: hash, err: nil}
 	}
 }
 
@@ -127,7 +125,11 @@ func findDuplicatesConcurrently(filePaths []string) (HashToFiles, error) {
 	}
 	doneProcessing.Add(len(filePaths))
 	for i := 0; i < maxFds; i++ {
-		go hashFileAsync(request, response, &doneProcessing)
+		go func() {
+			for {
+				hashFileAsync(request, response, &doneProcessing)
+			}
+		}()
 	}
 	doneProcessing.Wait()
 

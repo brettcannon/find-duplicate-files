@@ -1,11 +1,16 @@
 package main
 
-import "path/filepath"
-import "testing"
+import (
+	"path/filepath"
+	"sync"
+	"testing"
+)
 
-var testdataTop = "testdata"
-var testdata1 = filepath.Join(testdataTop, "dir1")
-var testdata2 = filepath.Join(testdataTop, "dir2")
+var (
+	testdataTop = "testdata"
+	testdata1   = filepath.Join(testdataTop, "dir1")
+	testdata2   = filepath.Join(testdataTop, "dir2")
+)
 
 func sliceToSet(stuff []string) map[string]bool {
 	set := make(map[string]bool)
@@ -49,6 +54,18 @@ func TestCliArgsDirectoriesOK(t *testing.T) {
 }
 
 // Directory traversal
+func TestSortDirContentsError(t *testing.T) {
+	_, _, err := sortDirContents("bogus path")
+	if err == nil {
+		t.Fatal("expected an error")
+	}
+	file := filepath.Join(testdata1, "intra-same")
+	_, _, err = sortDirContents(file)
+	if err == nil {
+		t.Fatal("expected an error")
+	}
+}
+
 // Directory with only files.
 func TestFindFiles(t *testing.T) {
 	dir := []string{testdata2}
@@ -66,6 +83,11 @@ func TestFindFiles(t *testing.T) {
 		if !fileSet[file] {
 			t.Errorf("%v not found in %v", file1, fileSet)
 		}
+	}
+
+	_, err = findFiles([]string{"bogus path"})
+	if err == nil {
+		t.Fatal("error expected")
 	}
 }
 
@@ -154,6 +176,11 @@ func baseTestDuplicationDetectingDuplicates(findDupes func([]string) (HashToFile
 			}
 		}
 	}
+
+	_, err = findDupes([]string{"bogus path"})
+	if err == nil {
+		t.Fatal("error expected")
+	}
 }
 
 func TestDuplicationDetectingDuplicatesSync(t *testing.T) {
@@ -177,6 +204,21 @@ func TestDuplicationNoDupes(t *testing.T) {
 }
 
 // Concurrency
+
+func TestHashFileAsyncError(t *testing.T) {
+	// Buffer to prevent deadlock.
+	request := make(chan string, 1)
+	response := make(chan MaybeHash, 1)
+	var wait sync.WaitGroup
+	wait.Add(1)
+	request <- "bogus file path"
+	hashFileAsync(request, response, &wait)
+	result := <-response
+	if result.err == nil {
+		t.Fatal("expected an error")
+	}
+}
+
 func TestDuplicationDetectingDuplicatesSyncAsync(t *testing.T) {
 	baseTestDuplicationDetectingDuplicates(findDuplicatesConcurrently, t)
 }

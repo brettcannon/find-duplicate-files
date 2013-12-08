@@ -1,14 +1,16 @@
 package main
 
-import "errors"
-import "flag"
-import "fmt"
-import "hash/fnv"
-import "io"
-import "os"
-import "path/filepath"
-import "runtime"
-import "sync"
+import (
+	"errors"
+	"flag"
+	"fmt"
+	"hash/fnv"
+	"io"
+	"os"
+	"path/filepath"
+	"runtime"
+	"sync"
+)
 
 type HashToFiles map[uint64][]string
 

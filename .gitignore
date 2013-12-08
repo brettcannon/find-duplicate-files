@@ -23,3 +23,4 @@ _testmain.go
 
 find-duplicate-files
 coverage.out
+coverage.html

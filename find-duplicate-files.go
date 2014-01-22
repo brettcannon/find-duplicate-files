@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"sync"
 )
 
 type HashToFiles map[uint64][]string
@@ -44,9 +43,7 @@ func hashFile(path string) (uint64, error) {
 	return hash.Sum64(), nil
 }
 
-func hashFileAsync(request chan string, response chan MaybeHash, doneProcessing *sync.WaitGroup) {
-	defer doneProcessing.Done()
-	path := <-request
+func hashFileAsync(path string, response chan MaybeHash) {
 	hash, err := hashFile(path)
 	if err != nil {
 		response <- MaybeHash{err: err}
@@ -117,23 +114,23 @@ func findDuplicates(files []string) (HashToFiles, error) {
 }
 
 func findDuplicatesConcurrently(filePaths []string) (HashToFiles, error) {
-	var doneProcessing sync.WaitGroup
-	request := make(chan string, len(filePaths))
 	response := make(chan MaybeHash, len(filePaths))
 	maxFds := runtime.NumCPU()
+	throttle := make(chan bool, maxFds)
 
 	for _, path := range filePaths {
-		request <- path
+		// Buffering will block until a goroutine thread is available.
+		throttle <- true
+		go func(path string) {
+			hashFileAsync(path, response)
+			<- throttle
+		}(path)
 	}
-	doneProcessing.Add(len(filePaths))
-	for i := 0; i < maxFds; i++ {
-		go func() {
-			for {
-				hashFileAsync(request, response, &doneProcessing)
-			}
-		}()
+	for i:= 0; i < maxFds; i++ {
+		// Will block until goroutines have removed all entries they have put
+		// in.
+		throttle <- true
 	}
-	doneProcessing.Wait()
 	close(response)
 
 	hashToFiles := make(HashToFiles)

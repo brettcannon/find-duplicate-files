@@ -2,7 +2,6 @@ package main
 
 import (
 	"path/filepath"
-	"sync"
 	"testing"
 )
 
@@ -194,8 +193,8 @@ func baseTestDuplicationNoDupes(findDupes func([]string) (HashToFiles, error), t
 		t.Fatal(err)
 	}
 
-	if len(dupes) != 2 {
-		t.Errorf("%v != 2", len(dupes))
+	if want, got := 2, len(dupes); want != got {
+		t.Errorf("want %v, got %v (%v)", want, got, dupes)
 	}
 }
 
@@ -207,12 +206,8 @@ func TestDuplicationNoDupes(t *testing.T) {
 
 func TestHashFileAsyncError(t *testing.T) {
 	// Buffer to prevent deadlock.
-	request := make(chan string, 1)
 	response := make(chan MaybeHash, 1)
-	var wait sync.WaitGroup
-	wait.Add(1)
-	request <- "bogus file path"
-	hashFileAsync(request, response, &wait)
+	hashFileAsync("bogus file path", response)
 	result := <-response
 	if result.err == nil {
 		t.Fatal("expected an error")

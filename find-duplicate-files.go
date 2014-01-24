@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 type HashToFiles map[uint64][]string
@@ -207,7 +208,7 @@ func main() {
 
 	for _, duplicate := range duplicates {
 		if len(duplicate) > 1 {
-			fmt.Println(duplicate)
+			fmt.Printf("%v\n\n", strings.Join(duplicate, "\n"))
 		}
 	}
 }
